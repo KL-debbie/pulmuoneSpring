@@ -1,42 +1,50 @@
 package org.pro.pulmuone;
 
-import java.text.DateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.security.Principal;
+import java.util.List;
 
-import org.pro.pulmuone.mapper.faq.FaqMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.servlet.http.HttpServletRequest;
+
+import org.pro.pulmuone.domain.cart.CartVO;
+import org.pro.pulmuone.domain.product.ProductsDTO;
+import org.pro.pulmuone.mapper.cart.CartMapper;
+import org.pro.pulmuone.mapper.main.MainMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
-/**
- * Handles requests for the application home page.
- */
+import lombok.extern.log4j.Log4j;
+
 @Controller
+@Log4j
+@RequestMapping("/")
 public class HomeController {
 	
-	private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
+	@Autowired
+	private MainMapper mainMapper;
 	
 	@Autowired
-	private FaqMapper faqMapper;
+	private CartMapper cartMapper;
 	
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String home(Locale locale, Model model) {
-		logger.info("Welcome home! The client locale is {}.", locale);
-		
-		Date date = new Date();
-		DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG, locale);
-		
-		String formattedDate = dateFormat.format(date);
-		
-		model.addAttribute("serverTime", formattedDate );
-		
-		return "home";
+	public HomeController() {
+		super();
 	}
-
+	@RequestMapping("index")
+	public String home(Model model) throws Exception {	  
+	  log.warn("> INDEX START ...");
+		List<ProductsDTO> mainbestlist = this.mainMapper.get();				
+		model.addAttribute("mainbestlist", mainbestlist );
+		return "home.index";
+	}
+	
+	@RequestMapping("cart")
+	public String cart(Model model, CartVO vo, Principal principal) throws Exception {				  
+		vo.setMember_id(principal.getName());		
+		int count = this.cartMapper.cart(vo);
+		model.addAttribute("count", count );				
+		return "home.index";
+		
+	}
 }

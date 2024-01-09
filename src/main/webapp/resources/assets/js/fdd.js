@@ -67,6 +67,7 @@ function showNotAvailModal(fails, onOk, onCancel) {
   $("#noAvailModal").modal("show");
 }
 
+
 function addCartToServer(type, data, eventIdx) {
   var codes = [];
   for (var item of data) {
@@ -74,13 +75,13 @@ function addCartToServer(type, data, eventIdx) {
     codes.push(item.itemCode);
   }
 
-  axios.post(`/product_available`, { ids: codes }).then(function (r) {
+  axios.get('/product/available', { ids: codes }).then(function (r) {
     var o = r.data.RESULT_MSG;
 	
     var lockIds = o.fails.map(x => x.itemCode);
     var target = data.filter(x => lockIds.indexOf(x.itemCode) < 0);         
 
-    axios.post('/cart/save.do', {[type]: target, eventIdx}).then(function ({data}) {
+    axios.get('/cart/save', {[type]: target, eventIdx}).then(function ({data}) {
       if (o.fails.length) {
         var nextDisabled = o.fails.length >= codes.length;
         showNotAvailModal(o.fails, nextDisabled ? undefined : function () {
@@ -373,22 +374,41 @@ let timer;
       $("#alertModal").find('.modal-footer').text(okBtnText);
     }
     if (callback && typeof callback == 'function') {
-      $("#alertModal .modal-footer").on("click", function () {
+      $("#alertModal .modal-footer").on("click", function () {        
         $("#alertModal").find('.modal-footer').text('확인');
         callback();
         $("#alertModal .modal-footer").off("click")
 
       });
-    }
+    }    
       $("#alertModal").on("hide.bs.modal", function () {
         $('#alertModal .modal-footer').removeClass('disabled')
         $('#alertModal .modal-footer').prop('disabled',false);
-        $("#alertModal .modal-footer").off("click")
+        $("#alertModal .modal-footer").off("click")        
         $("#alertModal").find('.modal-footer').text('확인');
         clearTimeout(timer)
       });
   }
-
+  window.confirm = function (title, message, callback, okBtnText, option) {
+  const body = {
+        title: !message ? '' : title,
+      content: !message ? title : message,
+    };
+    $("#confirmModalLabel").html("");
+    $("#confirmModal .modal-body").html(message);
+    $("#confirmModal").modal('show');
+    if (okBtnText) {
+      $("#confirmModal").find('.modal-footer').text(okBtnText);
+    }
+    if (callback && typeof callback == 'function') {
+      $("#confirmModal .modal-footer").on("click", function () {
+        $("#confirmModal").find('.modal-footer').text('취소');
+        $("#confirmModal").find('.modal-footer').text('확인');
+        callback();
+        $("#confirmModal .modal-footer").off("click")
+      });
+    }        
+  }
   window.alertWithRedirect = function (message, uri) {
     window.alert(message, function () {
       location.href = uri;
@@ -400,15 +420,15 @@ let timer;
         title: !message ? '' : title,
       content: !message ? title : message,
     };
-    $("#confirmModal .modal-title").html(body.title);
-    $("#confirmModal .modal-body").html(body.content);
-    $("#confirmModal").modal('show');
+    $("#confirmDesignmModal .modal-title").html(body.title);
+    $("#confirmDesignModal .modal-body").html(body.content);
+    $("#confirmDesignModal").modal('show');
 
     if (callback&& typeof callback =='function') {
-      $("#confirmModal .confirm").on("click", function () {
+      $("#confirmDesignModal .confirm").on("click", function () {
         callback()
-        $("#confirmModal .confirm").off("click")
-        $("#confirmModal").modal('hide');
+        $("#confirmDesignModal .confirm").off("click")
+        $("#confirmDesignModal").modal('hide');
       })
     }
   };
@@ -418,8 +438,24 @@ let timer;
     var type = that.attr("data-cart-type");
     var id = that.attr("data-cart-id");
     var eventIdx = that.attr("data-cart-event");
-    if (id && type) {
-      addCart(type, id, { eventIdx });
+    if (!window.is_signed) {
+      alert("로그인 후 장바구니로 담을 수 있습니다.", function () {
+        location.href = "/member/login?redirectUrl=" + encodeURIComponent(location.href);
+      });
+      return false;
+    }
+if (type == "daily"){
+    axios.get('/cart/'+type+'/save?products_no='+ id+'&item=1,1,1,1,1').then(function ({data}) {      
+        confirmDesign("제품이 담겼습니다. 담은 제품을 확인하시겠습니까?");
+    }).catch(function (e) {
+      alert("서버와 연결이 올바르지 않습니다.");
+    })
+  }else{
+  axios.get('/cart/'+type+'/save?products_no='+ id).then(function ({data}) {      
+        confirmDesign("제품이 담겼습니다. 담은 제품을 확인하시겠습니까?");
+    }).catch(function (e) {
+      alert("서버와 연결이 올바르지 않습니다.");
+    })
     }
     e.preventDefault();
     return false;
@@ -432,7 +468,7 @@ let timer;
     var eventIdx = that.attr("data-buy-event");
 
     var args = { item: [{itemCode, qty: "1", eventIdx }] };
-    location.href = "/order/box/step1?item=" + encodeURIComponent(JSON.stringify(args));
+    location.href = "/box/order/step1?item=" + encodeURIComponent(JSON.stringify(args));
 
     e.preventDefault();
     return false;
@@ -445,12 +481,12 @@ let timer;
 
     if (!window.is_signed) {
       alert("로그인 후 찜한상품으로 담을 수 있습니다.", function () {
-        location.href = "/member/login.do?redirectUrl=" + encodeURIComponent(location.href);
+        location.href = "/member/login?redirectUrl=" + encodeURIComponent(location.href);
       });
       return false;
     }
-      
-    axios.post('/product/' + type + '/interest.do?tag=' + id).then(function ({data}) {
+
+    axios.get('/product/' + type + '/interest/' + id+'?classname='+that.hasClass("active")).then(function ({data}) {
 	
 //      if (!data.ok) {
 //        return;
@@ -482,7 +518,7 @@ let timer;
       $("#productPreviewModal .modal-content").html("");
       $("#productPreviewModal").addClass("loading").modal('show');
 
-      $("#productPreviewModal .modal-content").load("/product/preview/modalview.do?num=" + id, function () {
+      $("#productPreviewModal .modal-content").load("/modal/preview/modalview?num=" + id, function () {
         $("#productPreviewModal").removeClass("loading");
       });
     }

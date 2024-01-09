@@ -11,14 +11,14 @@
 	<tiles:insertAttribute name="header" />
 	
   	<!-- main -->
-  	<main class="page faq forum">
+  	<main class='page <tiles:getAsString name="page" /> forum'>
 		<div class="container">
 			<div class="breadcrumb-style">
 	            <div class="wrap">
 	                <ul>
 	                    <li><a href="/">홈</a></li>
-	                    <li><a href="/forum/faq/list?">고객기쁨센터</a></li>
-	                    <li><a class="active">FAQ</a></li>
+	                    <li><a href="/forum/faq/list">고객기쁨센터</a></li>
+	                    <li><a class="active"></a></li>
 	                </ul>
 	            </div>
 	        </div>
@@ -35,7 +35,17 @@
 	</main>
   	<!-- footer -->
   	<tiles:insertAttribute name="footer" />
+  	<tiles:insertAttribute name="footermodal" />
 </div>
+<!-- modal -->
+<tiles:insertAttribute name="alertModal" />
+<tiles:insertAttribute name="confirmModal" />
+
+
+<script>
+	let breadcrumb_text = $(".container-title").text();
+	$(".breadcrumb-style .active").text(breadcrumb_text);
+</script>
 
 </body>
 </html>
